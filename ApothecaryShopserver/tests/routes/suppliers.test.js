@@ -1,20 +1,20 @@
-const request = require('supertest');
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
-const express = require('express');
-const supplierRoutes = require('../../routes/suppliers');
-const Supplier = require('../../models/supplier');
-const auth = require('../../middleware/auth');
-const { adminOnly, staffAccess } = require('../../middleware/roleCheck');
+const request = require("supertest");
+const mongoose = require("mongoose");
+const { MongoMemoryServer } = require("mongodb-memory-server");
+const express = require("express");
+const supplierRoutes = require("../../routes/suppliers");
+const Supplier = require("../../models/supplier");
+const auth = require("../../middleware/auth");
+const { adminOnly, staffAccess } = require("../../middleware/roleCheck");
 
 // Mock middleware
-jest.mock('../../middleware/auth', () => {
+jest.mock("../../middleware/auth", () => {
   return jest.fn((req, res, next) => next());
 });
 
-jest.mock('../../middleware/roleCheck', () => ({
+jest.mock("../../middleware/roleCheck", () => ({
   adminOnly: jest.fn((req, res, next) => next()),
-  staffAccess: jest.fn((req, res, next) => next())
+  staffAccess: jest.fn((req, res, next) => next()),
 }));
 
 // Sample data for testing
@@ -28,19 +28,19 @@ const mockSupplier = {
     city: "Test City",
     state: "Test State",
     zipCode: "123456",
-    country: "Test Country"
+    country: "Test Country",
   },
   taxId: "TEST1234G",
   isJanAushadhi: false,
   paymentTerms: "Net 30",
   rating: 4,
-  status: "active"
+  status: "active",
 };
 
 // Setup express app for testing
 const app = express();
 app.use(express.json());
-app.use('/api/suppliers', supplierRoutes);
+app.use("/api/suppliers", supplierRoutes);
 
 // Setup in-memory database for testing
 let mongoServer;
@@ -60,19 +60,19 @@ beforeEach(async () => {
   await Supplier.deleteMany({});
 });
 
-describe('Supplier Routes', () => {
-  describe('GET /api/suppliers', () => {
-    test('should return all suppliers', async () => {
+describe("Supplier Routes", () => {
+  describe("GET /api/suppliers", () => {
+    test("should return all suppliers", async () => {
       // Create test suppliers
       await Supplier.create(mockSupplier);
       await Supplier.create({
-        ...mockSupplier, 
+        ...mockSupplier,
         name: "Another Supplier",
-        email: "another@test.com"
+        email: "another@test.com",
       });
 
-      const response = await request(app).get('/api/suppliers');
-      
+      const response = await request(app).get("/api/suppliers");
+
       expect(response.status).toBe(200);
       expect(Array.isArray(response.body)).toBeTruthy();
       expect(response.body.length).toBe(2);
@@ -80,47 +80,49 @@ describe('Supplier Routes', () => {
       expect(staffAccess).toHaveBeenCalled();
     });
 
-    test('should handle errors', async () => {
+    test("should handle errors", async () => {
       // Force an error
-      jest.spyOn(Supplier, 'find').mockImplementationOnce(() => {
-        throw new Error('Database error');
+      jest.spyOn(Supplier, "find").mockImplementationOnce(() => {
+        throw new Error("Database error");
       });
 
-      const response = await request(app).get('/api/suppliers');
-      
+      const response = await request(app).get("/api/suppliers");
+
       expect(response.status).toBe(500);
-      expect(response.body.message).toBe('Database error');
+      expect(response.body.message).toBe("Database error");
     });
   });
 
-  describe('GET /api/suppliers/:id', () => {
-    test('should return a single supplier', async () => {
+  describe("GET /api/suppliers/:id", () => {
+    test("should return a single supplier", async () => {
       const supplier = await Supplier.create(mockSupplier);
-      
+
       const response = await request(app).get(`/api/suppliers/${supplier._id}`);
-      
+
       expect(response.status).toBe(200);
       expect(response.body.name).toBe(mockSupplier.name);
       expect(auth).toHaveBeenCalled();
       expect(staffAccess).toHaveBeenCalled();
     });
 
-    test('should return 404 if supplier not found', async () => {
+    test("should return 404 if supplier not found", async () => {
       const nonExistentId = new mongoose.Types.ObjectId();
-      
-      const response = await request(app).get(`/api/suppliers/${nonExistentId}`);
-      
+
+      const response = await request(app).get(
+        `/api/suppliers/${nonExistentId}`
+      );
+
       expect(response.status).toBe(404);
-      expect(response.body.message).toBe('Supplier not found');
+      expect(response.body.message).toBe("Supplier not found");
     });
   });
 
-  describe('POST /api/suppliers', () => {
-    test('should create a new supplier', async () => {
+  describe("POST /api/suppliers", () => {
+    test("should create a new supplier", async () => {
       const response = await request(app)
-        .post('/api/suppliers')
+        .post("/api/suppliers")
         .send(mockSupplier);
-      
+
       expect(response.status).toBe(201);
       expect(response.body.name).toBe(mockSupplier.name);
       expect(auth).toHaveBeenCalled();
@@ -131,41 +133,56 @@ describe('Supplier Routes', () => {
       expect(supplierInDb).toBeTruthy();
     });
 
-    test('should handle validation errors', async () => {
+    test("should handle validation errors", async () => {
       // Use empty object to trigger validation errors
       const invalidSupplier = {};
-      
+
       // Mock the save method to simulate validation error
-      jest.spyOn(mongoose.Model.prototype, 'save').mockImplementationOnce(() => {
-        const error = new Error('Validation failed');
-        error.name = 'ValidationError';
-        throw error;
-      });
-      
+      jest
+        .spyOn(mongoose.Model.prototype, "save")
+        .mockImplementationOnce(() => {
+          const error = new Error("Validation failed");
+          error.name = "ValidationError";
+          throw error;
+        });
+
       const response = await request(app)
-        .post('/api/suppliers')
+        .post("/api/suppliers")
         .send(invalidSupplier);
-      
+
       expect(response.status).toBe(400);
       expect(response.body.message).toBeTruthy();
-      
+
       // Restore the mock
       mongoose.Model.prototype.save.mockRestore();
     });
+
+    test("should return 409 if supplier with same email already exists", async () => {
+      await Supplier.create(mockSupplier);
+
+      const response = await request(app)
+        .post("/api/suppliers")
+        .send(mockSupplier);
+
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe(
+        "Supplier with this email already exists"
+      );
+    });
   });
 
-  describe('PUT /api/suppliers/:id', () => {
-    test('should update an existing supplier', async () => {
+  describe("PUT /api/suppliers/:id", () => {
+    test("should update an existing supplier", async () => {
       const supplier = await Supplier.create(mockSupplier);
       const updates = {
         name: "Updated Supplier Name",
-        rating: 5
+        rating: 5,
       };
-      
+
       const response = await request(app)
         .put(`/api/suppliers/${supplier._id}`)
         .send(updates);
-      
+
       expect(response.status).toBe(200);
       expect(response.body.name).toBe(updates.name);
       expect(response.body.rating).toBe(updates.rating);
@@ -173,27 +190,45 @@ describe('Supplier Routes', () => {
       expect(adminOnly).toHaveBeenCalled();
     });
 
-    test('should return 404 if supplier not found', async () => {
+    test("should return 404 if supplier not found", async () => {
       const nonExistentId = new mongoose.Types.ObjectId();
-      
+
       const response = await request(app)
         .put(`/api/suppliers/${nonExistentId}`)
         .send({ name: "Updated Name" });
-      
+
       expect(response.status).toBe(404);
-      expect(response.body.message).toBe('Supplier not found');
+      expect(response.body.message).toBe("Supplier not found");
+    });
+
+    test("should return 409 if email is updated and already exists", async () => {
+      const supplier1 = await Supplier.create(mockSupplier);
+      const supplier2 = await Supplier.create({
+        ...mockSupplier,
+        email: "different@test.com",
+      });
+
+      const response = await request(app)
+        .put(`/api/suppliers/${supplier1._id}`)
+        .send({ email: supplier2.email });
+
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe(
+        "Another supplier with this email already exists"
+      );
     });
   });
 
-  describe('DELETE /api/suppliers/:id', () => {
-    test('should delete a supplier', async () => {
+  describe("DELETE /api/suppliers/:id", () => {
+    test("should delete a supplier", async () => {
       const supplier = await Supplier.create(mockSupplier);
-      
-      const response = await request(app)
-        .delete(`/api/suppliers/${supplier._id}`);
-      
+
+      const response = await request(app).delete(
+        `/api/suppliers/${supplier._id}`
+      );
+
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe('Supplier deleted successfully');
+      expect(response.body.message).toBe("Supplier deleted successfully");
       expect(auth).toHaveBeenCalled();
       expect(adminOnly).toHaveBeenCalled();
 
@@ -202,14 +237,78 @@ describe('Supplier Routes', () => {
       expect(supplierInDb).toBeNull();
     });
 
-    test('should return 404 if supplier not found', async () => {
+    test("should return 404 if supplier not found", async () => {
       const nonExistentId = new mongoose.Types.ObjectId();
-      
-      const response = await request(app)
-        .delete(`/api/suppliers/${nonExistentId}`);
-      
+
+      const response = await request(app).delete(
+        `/api/suppliers/${nonExistentId}`
+      );
+
       expect(response.status).toBe(404);
-      expect(response.body.message).toBe('Supplier not found');
+      expect(response.body.message).toBe("Supplier not found");
+    });
+  });
+
+  describe("GET /api/suppliers - Filter by Status", () => {
+    test("should return only active suppliers", async () => {
+      await Supplier.create(mockSupplier);
+      await Supplier.create({
+        ...mockSupplier,
+        name: "Inactive Supplier",
+        email: "inactive@test.com",
+        status: "inactive",
+      });
+
+      const response = await request(app)
+        .get("/api/suppliers?status=active")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].status).toBe("active");
+    });
+
+    test("should return only inactive suppliers", async () => {
+      await Supplier.create(mockSupplier);
+      await Supplier.create({
+        ...mockSupplier,
+        name: "Inactive Supplier",
+        email: "inactive@test.com",
+        status: "inactive",
+      });
+
+      const response = await request(app)
+        .get("/api/suppliers?status=inactive")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].status).toBe("inactive");
+    });
+  });
+
+  describe("GET /api/suppliers - Search by Email", () => {
+    test("should return the supplier matching the email search", async () => {
+      await Supplier.create(mockSupplier);
+
+      const response = await request(app)
+        .get("/api/suppliers?search=test@testpharma.com")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.length).toBe(1);
+      expect(response.body.data[0].email).toBe("test@testpharma.com");
+    });
+
+    test("should return empty array for no matching email", async () => {
+      await Supplier.create(mockSupplier);
+
+      const response = await request(app)
+        .get("/api/suppliers?search=nonexistent@test.com")
+        .set("Authorization", "Bearer test-token");
+
+      expect(response.status).toBe(200);
+      expect(response.body.data.length).toBe(0);
     });
   });
 });

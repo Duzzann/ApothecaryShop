@@ -1,0 +1,34 @@
+name: Node.js CI
+
+# Workflow sa spustí pri pushnutí do hlavnej vetvy alebo pri pull requeste na hlavnú vetvu
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    # Určuje prostredie, v ktorom sa workflow spustí
+    runs-on: ubuntu-latest # Spustí workflow na najnovšom Ubuntu
+
+    steps:
+      # Krok 1: Checkout kódu z repozitára
+      - name: Checkout code
+        uses: actions/checkout@v2 # Skopíruje kód z GitHub repozitára do workflow
+
+      # Krok 2: Nastaví Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "14" # Nastaví Node.js verziu na 14
+
+      # Krok 3: Nainštaluje závislosti
+      - name: Install dependencies
+        run: npm install # Spustí npm install, aby nainštaloval všetky závislosti
+
+      # Krok 4: Spustí testy
+      - name: Run tests
+        run: npm test # Spustí npm test na overenie, či testy prebehli úspešne

@@ -7,14 +7,19 @@
     "server": "cd ApothecaryShopserver && npm run dev",
     "client": "cd ApothecaryShopUI && npm run dev",
     "dev": "concurrently \"npm run server\" \"npm run client\"",
-    "install-all": "npm install && cd ApothecaryShopserver && npm install && cd ../ApothecaryShopUI && npm install"
+    "install-all": "npm install && cd ApothecaryShopserver && npm install && cd ../ApothecaryShopUI && npm install",
+    "test": "jest --coverage"
   },
   "dependencies": {
+    "pdfkit": "^0.17.2",
+    "supertest": "^7.1.4",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
+    "@babel/preset-react": "^7.28.5",
     "concurrently": "^9.2.1",
+    "jest": "^30.2.0",
     "vite": "^6.3.6"
   }
 }
