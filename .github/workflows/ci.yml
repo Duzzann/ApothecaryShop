@@ -66,4 +66,4 @@ jobs:
         run: echo "Build successful without running tests"
 
       # - name: Run testss
-      #   run: npm test # Spustí npm test na overenie, či testy prebehli úspešne
+      #   run: npm test # Spustí npm test na overenie, či testy prebehli úspešnes
