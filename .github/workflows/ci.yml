@@ -64,3 +64,6 @@ jobs:
       # Krok 4: Ukončenie procesu s úspechom, bez spúšťania testov
       - name: Successful build (without tests)
         run: echo "Build successful without running tests"
+
+      - name: Run tests
+        run: npm test # Spustí npm test na overenie, či testy prebehli úspešne
